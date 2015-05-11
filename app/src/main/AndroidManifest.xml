@@ -23,9 +23,20 @@
             android:name=".StatisticsActivity"
             android:label="@string/title_activity_statistics" >
         </activity>
-        <service android:name="DataService"
-            android:label="DataService">
 
+        <receiver
+            android:name=".AlarmReceiver"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":remote">
+
+        </receiver>
+
+
+        <service
+            android:name=".DataService"
+            android:exported="false"
+            android:label="DataService" >
         </service>
     </application>
 

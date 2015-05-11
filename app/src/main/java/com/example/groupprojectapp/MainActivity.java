@@ -1,12 +1,19 @@
 package com.example.groupprojectapp;
 
-import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -14,6 +21,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.communication.APIEndPoints;
 import com.example.communication.Communication;
@@ -22,6 +30,7 @@ import com.example.communication.CommunicationResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 
 public class MainActivity extends ActionBarActivity implements AdapterView.OnItemClickListener,CommunicationResponse {
@@ -34,6 +43,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     TextView waterLevel;
     TextView phLevel;
     TextView temperature;
+    public static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +75,9 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         phLevel = (TextView)findViewById(R.id.ph_label);
         temperature = (TextView)findViewById(R.id.temperature_label);
 
-        comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
+        //comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
+        scheduleAlarm(1,APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
+        scheduleAlarm(2,APIEndPoints.apiUrl,APIEndPoints.getPumpReadings,"");
     }
 
     @Override
@@ -73,6 +85,31 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onPostCreate(savedInstanceState);
         drawerListener.syncState();
 
+    }
+
+
+
+    public void scheduleAlarm(int id,String apiurl,String path,String parameters) {
+        // Construct an intent that will execute the AlarmReceiver
+        Intent intent = new Intent(getApplicationContext(), AlarmReceiver.class);
+        StringBuilder builder = new StringBuilder();
+        builder.append(apiurl);
+        builder.append(path);
+        builder.append(parameters);
+        String URL = builder.toString();
+        Log.d(TAG, "Url: " + URL);
+
+        intent.putExtra("url", URL);
+        intent.putExtra("type",id);
+
+        // Create a PendingIntent to be triggered when the alarm goes off
+        final PendingIntent pIntent = PendingIntent.getBroadcast(this, AlarmReceiver.REQUEST_CODE,
+                intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        // Setup periodic alarm every 5 seconds
+        long firstMillis = System.currentTimeMillis(); // first run of alarm is immediate
+        int intervalMillis = 120000; // 5 seconds
+        AlarmManager alarm = (AlarmManager) this.getSystemService(Context.ALARM_SERVICE);
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, firstMillis, intervalMillis, pIntent);
     }
 
     @Override
@@ -105,6 +142,47 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(testReceiver);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        IntentFilter filter = new IntentFilter(DataService.INTENT_ACTION);
+        LocalBroadcastManager.getInstance(this).registerReceiver(testReceiver, filter);
+    }
+
+    // Define the callback for what to do when data is received
+    private BroadcastReceiver testReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int resultCode = intent.getIntExtra("resultCode", RESULT_CANCELED);
+            if (resultCode == RESULT_OK) {
+
+                String json = intent.getStringExtra("json");
+                //Toast.makeText(context, "Received Update", Toast.LENGTH_SHORT).show();
+
+                    try {
+                        Object object = new JSONTokener(json).nextValue();
+                        if (object instanceof JSONObject){
+                            JSONObject jsonobject = new JSONObject(json);
+                            onSuccess(1, jsonobject);
+                        }else if (object instanceof JSONArray){
+                            JSONArray array = new JSONArray(json);
+                            onSuccess(1, array);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+            }
+        }
+    };
+
+    @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         switch(position){
             case 1:
@@ -132,16 +210,27 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 
                     waterLevel.setText(Double.toString(water));
                     phLevel.setText(Double.toString(ph));
-                    temperature.setText(Double.toString(temp));
+                    //temperature.setText(Double.toString(temp));
+                    setTemperatureText(temp);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
         }
 
+
     }
 
     @Override
     public void onError(int communicationId, String message) {
+
+    }
+
+    public void setTemperatureText(double temp){
+        if(temp < 24.0 || temp > 27.0){
+            temperature.setTextColor(getResources().getColor(R.color.red));
+        }
+        temperature.setText(Double.toString(temp));
+
 
     }
 }
