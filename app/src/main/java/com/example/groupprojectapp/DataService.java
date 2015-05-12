@@ -143,6 +143,7 @@ public class DataService extends IntentService {
             if (object instanceof JSONObject){
                 switch (type){
                     case 1:
+                        Log.d(TAG,"Analyze System");
                         jsonobject = new JSONObject(json);
                         double []temps = new double[SIZE];
                         double []phs = new double[SIZE];
@@ -150,15 +151,15 @@ public class DataService extends IntentService {
 
                         JSONArray data = jsonobject.getJSONArray("data");
                         int length = data.length();
-                        for(int i = ((length-1)-SIZE); i<length; i++){
+                        for(int i = ((length-1)-SIZE); i<length-1; i++){
                             JSONObject reading = data.getJSONObject(i);
                             int index = i - ((length-1)-SIZE);
                             double water = reading.getDouble("waterLevel");
 
                             double ph = reading.getDouble("ph");
                             double temp = reading.getDouble("temperature");
-                            temps[i] = temp;
-                            phs[i] = ph;
+                            temps[index] = temp;
+                            phs[index] = ph;
 
                         }
 
@@ -167,6 +168,7 @@ public class DataService extends IntentService {
                         // analyzepH(phs);
                     break;
                     case 2:
+                        Log.d(TAG,"Analyze Pump");
                         jsonobject = new JSONObject(json);
 
 
@@ -176,7 +178,8 @@ public class DataService extends IntentService {
                         JSONObject pumpReading = data2.getJSONObject(length2-1);
                         boolean status = pumpReading.getBoolean("status");
                         Date datetime = new Date(pumpReading.getLong("datetime"));
-                        analyzeWaterLevel(status,datetime);
+                        analyzeWaterLevel(status, datetime);
+
 
 
                 }
