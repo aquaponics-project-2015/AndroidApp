@@ -7,9 +7,14 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,6 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 
 public class DataService extends IntentService {
@@ -35,6 +41,7 @@ public class DataService extends IntentService {
     private static final String TYPE = "type";
    // public int type = 0;
     public int SIZE =5;
+    SharedPreferences prefs;
 
     public static final String INTENT_ACTION = "com.example.groupprojectapp";
 
@@ -71,7 +78,7 @@ public class DataService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-
+       prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
         if (intent != null) {
            String intenturl = intent.getStringExtra(URL);
            int type = intent.getIntExtra(TYPE,0);
@@ -145,12 +152,17 @@ public class DataService extends IntentService {
                     case 1:
                         Log.d(TAG,"Analyze System");
                         jsonobject = new JSONObject(json);
+
                         double []temps = new double[SIZE];
                         double []phs = new double[SIZE];
 
 
                         JSONArray data = jsonobject.getJSONArray("data");
                         int length = data.length();
+                        long latesttime = data.getJSONObject(length-1).getLong("datetime");
+                        setNetStatus(new Date(latesttime));
+
+
                         for(int i = ((length-1)-SIZE); i<length-1; i++){
                             JSONObject reading = data.getJSONObject(i);
                             int index = i - ((length-1)-SIZE);
@@ -196,76 +208,56 @@ public class DataService extends IntentService {
 
     }
 
-    public void analyzeTemp(double[] temps){
-        double sum = 0;
-        for (int i=0;i<SIZE;i++){
-            sum = sum+temps[i];
+    public void setNetStatus(Date datetime){
+        Date current = new Date();
+        Log.d(TAG, "current date: " + current.toString());
+        Log.d(TAG, "timestamp date: " + datetime.toString());
 
+        long diffMinutes = getDateDiff(datetime,current,TimeUnit.MINUTES);
+        Log.d(TAG,"Time difference: "+diffMinutes);
+        if(diffMinutes>30){
+
+            //image.setImageResource(R.drawable.offline);
+            //text.setText("Offline");
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("netstat",false);
+            editor.commit();
+
+
+
+
+        }else {
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("netstat", true);
+            editor.commit();
+            Log.d(TAG,"Net status is now: "+prefs.getBoolean("netstat",false));
         }
-        double avg = sum/SIZE;
-        if(avg<24.0){
-            Intent notifintent = new Intent(this, MainActivity.class);
-            PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifintent, 0);
-
-            // build notification
-            // the addAction re-use the same intent to keep the example short
-            Notification n  = new Notification.Builder(this)
-                    .setContentTitle("System Temperature Inadequate")
-                    .setContentText("Temperature may be too low")
-                    .setSmallIcon(R.drawable.ic_launcher)
-                    .setContentIntent(pIntent)
-                    .setAutoCancel(true)
-                    .build();
 
 
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-            notificationManager.notify(0, n);
-
-        }else if(avg>27.0){
-            Intent notifintent = new Intent(this, MainActivity.class);
-            PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifintent, 0);
-
-            // build notification
-            // the addAction re-use the same intent to keep the example short
-            Notification n  = new Notification.Builder(this)
-                    .setContentTitle("System Temperature Inadequate")
-                    .setContentText("Temperature may be too high")
-                    .setSmallIcon(R.drawable.ic_launcher)
-                    .setContentIntent(pIntent)
-                    .setAutoCancel(true)
-                    .build();
-
-
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-            notificationManager.notify(0, n);
-
-        }
+    }
+    public static long getDateDiff(Date date1, Date date2, TimeUnit timeUnit) {
+        long diffInMillies = date2.getTime() - date1.getTime();
+        return timeUnit.convert(diffInMillies,TimeUnit.MILLISECONDS);
     }
 
-    public void analyzeWaterLevel(boolean status,Date datetime){
+    public void analyzeTemp(double[] temps){
+        boolean stat = prefs.getBoolean("netstat",false);
+        if(stat == true) {
+            double sum = 0;
+            for (int i = 0; i < SIZE; i++) {
+                sum = sum + temps[i];
 
-        if(status == false){
-            Date current = new Date();
-
-            long diff = current.getTime() - datetime.getTime();
-            long diffSeconds = diff / 1000 % 60;
-            long diffMinutes = diff / (60 * 1000) % 60;
-            long diffHours = diff / (60 * 60 * 1000);
-            int diffInDays = (int) ((current.getTime() - datetime.getTime()) / (1000 * 60 * 60 * 24));
-
-            if(diffMinutes > 30){
+            }
+            double avg = sum / SIZE;
+            if (avg < 24.0) {
                 Intent notifintent = new Intent(this, MainActivity.class);
                 PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifintent, 0);
 
                 // build notification
                 // the addAction re-use the same intent to keep the example short
-                Notification n  = new Notification.Builder(this)
-                        .setContentTitle("System Water Level Inadequate")
-                        .setContentText("The water level may be too low")
+                Notification n = new Notification.Builder(this)
+                        .setContentTitle("System Temperature Inadequate")
+                        .setContentText("Temperature may be too low")
                         .setSmallIcon(R.drawable.ic_launcher)
                         .setContentIntent(pIntent)
                         .setAutoCancel(true)
@@ -276,10 +268,67 @@ public class DataService extends IntentService {
                         (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
                 notificationManager.notify(0, n);
+
+            } else if (avg > 27.0) {
+                Intent notifintent = new Intent(this, MainActivity.class);
+                PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifintent, 0);
+
+                // build notification
+                // the addAction re-use the same intent to keep the example short
+                Notification n = new Notification.Builder(this)
+                        .setContentTitle("System Temperature Inadequate")
+                        .setContentText("Temperature may be too high")
+                        .setSmallIcon(R.drawable.ic_launcher)
+                        .setContentIntent(pIntent)
+                        .setAutoCancel(true)
+                        .build();
+
+
+                NotificationManager notificationManager =
+                        (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+                notificationManager.notify(0, n);
+
             }
+        }else {
 
         }
+    }
 
+    public void analyzeWaterLevel(boolean status,Date datetime){
+        boolean stat = prefs.getBoolean("netstat",false);
+        if(stat == true) {
+            if (status == false) {
+                Date current = new Date();
+
+
+                long diffMinutes= getDateDiff(datetime,current,TimeUnit.MINUTES);
+
+                if (diffMinutes > 30) {
+                    Intent notifintent = new Intent(this, MainActivity.class);
+                    PendingIntent pIntent = PendingIntent.getActivity(this, 0, notifintent, 0);
+
+                    // build notification
+                    // the addAction re-use the same intent to keep the example short
+                    Notification n = new Notification.Builder(this)
+                            .setContentTitle("System Water Level Inadequate")
+                            .setContentText("The water level may be too low")
+                            .setSmallIcon(R.drawable.ic_launcher)
+                            .setContentIntent(pIntent)
+                            .setAutoCancel(true)
+                            .build();
+
+
+                    NotificationManager notificationManager =
+                            (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+                    notificationManager.notify(0, n);
+                }
+
+            }
+        }else {
+
+        }
 
     }
 

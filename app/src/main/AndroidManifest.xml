@@ -42,6 +42,11 @@
             android:enabled="true"
             android:exported="true" >
         </receiver>
+
+        <activity
+            android:name=".FishActivity"
+            android:label="@string/title_activity_fish" >
+        </activity>
     </application>
 
 </manifest>

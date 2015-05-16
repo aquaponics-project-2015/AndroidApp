@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference android:title="Maximum pH"
+        android:key="maxph"
+        android:summary="Enter maximum system pH"></EditTextPreference>
+    <EditTextPreference android:title="Minimum pH"
+        android:key="minph"
+        android:summary="Enter minimum system pH"></EditTextPreference>
+    <CheckBoxPreference android:title="Network Status"
+        android:defaultValue="false"
+        android:summary="Set network status of the system"
+        android:key="netstat" />
+
+</PreferenceScreen>

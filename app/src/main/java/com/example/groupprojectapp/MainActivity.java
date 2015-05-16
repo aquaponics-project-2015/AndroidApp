@@ -8,6 +8,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
@@ -47,6 +49,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     TextView waterLevel;
     TextView phLevel;
     TextView temperature;
+    SharedPreferences prefs;
     public static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
@@ -54,6 +57,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         context = this;
+        prefs = PreferenceManager.getDefaultSharedPreferences(context);
         comm = new Communication(context);
         drawerLayout = (DrawerLayout)findViewById(R.id.drawer);
         navigation = (ListView)findViewById(R.id.navigation);
@@ -84,6 +88,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
         //comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
         scheduleAlarm(1,APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
         scheduleAlarm(2, APIEndPoints.apiUrl, APIEndPoints.getPumpReadings, "");
+        setNetStatus();
     }
 
     @Override
@@ -93,6 +98,22 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
 
     }
 
+    public void setNetStatus() {
+        boolean stat = prefs.getBoolean("netstat", false);
+        if(stat==false){
+            View v = getSupportActionBar().getCustomView();
+            ImageView image = (ImageView)v.findViewById(R.id.status_image);
+            TextView text = (TextView)v.findViewById(R.id.status_text);
+            image.setImageResource(R.drawable.offline);
+            text.setText("Offline");
+        }else{
+            View v = getSupportActionBar().getCustomView();
+            ImageView image = (ImageView)v.findViewById(R.id.status_image);
+            TextView text = (TextView)v.findViewById(R.id.status_text);
+            image.setImageResource(R.drawable.online);
+            text.setText("Online");
+        }
+    }
 
 
     public void scheduleAlarm(int id,String apiurl,String path,String parameters) {
@@ -209,6 +230,11 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
             case 1:
                 Intent i = new Intent(this,StatisticsActivity.class);
                 startActivity(i);
+            break;
+            case 2:
+                Intent i2 = new Intent(this,FishActivity.class);
+                startActivity(i2);
+
         }
     }
 
@@ -224,21 +250,24 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                 try {
                     JSONArray array = object.getJSONArray("data");
                     int length = array.length();
-                    JSONObject reading = array.getJSONObject(length-1);
+                    JSONObject reading = array.getJSONObject(length - 1);
                     double water = reading.getDouble("waterLevel");
                     double ph = reading.getDouble("ph");
                     double temp = reading.getDouble("temperature");
+                    Date datetime = new Date(reading.getLong("datetime"));
 
                     waterLevel.setText(Double.toString(water));
                     phLevel.setText(Double.toString(ph));
                     //temperature.setText(Double.toString(temp));
                     setTemperatureText(temp);
+                    setpHText(ph);
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             break;
             case 2:
-                JSONArray data2 = null;
+                /*JSONArray data2 = null;
                 try {
                     data2 = object.getJSONArray("data");
                     int length2 = data2.length();
@@ -269,7 +298,7 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                }
+                }*/
 
 
 
@@ -283,8 +312,18 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     @Override
     public void onError(int communicationId, String message) {
 
-    }
 
+    }
+    public void setpHText(double ph){
+        double minph = Double.parseDouble(prefs.getString("minph","0.0"));
+        double maxph = Double.parseDouble(prefs.getString("maxph", "14.0"));
+        if(ph < minph || ph > maxph){
+            phLevel.setTextColor(getResources().getColor(R.color.red));
+        }
+        phLevel.setText(Double.toString(ph));
+
+
+    }
     public void setTemperatureText(double temp){
         if(temp < 24.0 || temp > 27.0){
             temperature.setTextColor(getResources().getColor(R.color.red));

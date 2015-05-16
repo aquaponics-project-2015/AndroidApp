@@ -4,7 +4,7 @@
     <string-array name="navigation_options">
         <item>Current</item>
         <item>Statistics</item>
-        <item>Plants</item>
+        <item>Fishes</item>
         <item>About</item>
     </string-array>
 </resources>
