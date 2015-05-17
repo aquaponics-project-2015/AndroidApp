@@ -31,7 +31,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 
 public class PHFragment extends Fragment implements CommunicationResponse {
@@ -57,6 +59,9 @@ public class PHFragment extends Fragment implements CommunicationResponse {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         page = getArguments().getInt("PH_PAGE");
+        comm = new Communication(getActivity());
+        comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
+
 
     }
 
@@ -75,7 +80,7 @@ public class PHFragment extends Fragment implements CommunicationResponse {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         //comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
-        scheduleAlarm(1, APIEndPoints.apiUrl, APIEndPoints.getSystemReadings, "");
+        //scheduleAlarm(1, APIEndPoints.apiUrl, APIEndPoints.getSystemReadings, "");
 
 
     }
@@ -147,9 +152,12 @@ public class PHFragment extends Fragment implements CommunicationResponse {
             try {
                 JSONObject object = array.getJSONObject(i);
                 float ph = (float)object.getDouble("ph");
+                long timestamp = object.getLong("datetime");
+                Date readingDate = new Date(timestamp);
                 Entry entry = new Entry(ph,i);
                 phVals.add(entry);
-                xVals.add((i*15)+" mins");
+                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+                xVals.add(sdf.format(readingDate));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -160,6 +168,8 @@ public class PHFragment extends Fragment implements CommunicationResponse {
 
 
         LineDataSet setComp1 = new LineDataSet(phVals, "pH");
+        setComp1.setCircleColor(getResources().getColor(R.color.green));
+        setComp1.setColor(getResources().getColor(R.color.green));
 
         ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
         dataSets.add(setComp1);
@@ -169,6 +179,10 @@ public class PHFragment extends Fragment implements CommunicationResponse {
 
         LineData data = new LineData(xVals, dataSets);
         chart.setData(data);
+        chart.setVisibleXRange(10);
+        chart.setBackgroundColor(getResources().getColor(R.color.white));
+        chart.setGridBackgroundColor(getResources().getColor(R.color.grey));
+        chart.setDescription("Recent pH Readings");
         chart.invalidate();
 
     }

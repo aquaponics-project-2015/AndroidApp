@@ -8,7 +8,9 @@
     <com.example.slidingtablayout.SlidingTabLayout
         android:id="@+id/sliding_tabs"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:textColor="@color/darkBlue">
 
     </com.example.slidingtablayout.SlidingTabLayout>
     <android.support.v4.view.ViewPager

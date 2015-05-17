@@ -35,7 +35,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -67,6 +69,7 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
         page = getArguments().getInt("ARG_PAGE");
         comm = new Communication(getActivity());
 
+
     }
 
     @Override
@@ -75,7 +78,7 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_water_level, container, false);
         lineChart = (LineChart)view.findViewById(R.id.chart);
-
+        comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
 
         return view;
     }
@@ -84,7 +87,7 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         //comm.send(1,this, APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
-        scheduleAlarm(1,APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
+        //scheduleAlarm(1,APIEndPoints.apiUrl,APIEndPoints.getSystemReadings,"");
 
 
     }
@@ -156,9 +159,12 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
             try {
                 JSONObject object = array.getJSONObject(i);
                 float waterLevel = (float)object.getDouble("waterLevel");
+                long timestamp = object.getLong("datetime");
+                Date readingDate = new Date(timestamp);
                 Entry entry = new Entry(waterLevel,i);
                 waterVals.add(entry);
-                xVals.add((i*15)+" mins");
+                SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+                xVals.add(sdf.format(readingDate));
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -169,6 +175,8 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
 
 
         LineDataSet setComp1 = new LineDataSet(waterVals, "Water Level");
+        setComp1.setCircleColor(getActivity().getResources().getColor(R.color.blue));
+        setComp1.setColor(getResources().getColor(R.color.blue));
 
         ArrayList<LineDataSet> dataSets = new ArrayList<LineDataSet>();
         dataSets.add(setComp1);
@@ -178,9 +186,14 @@ public class WaterLevelFragment extends Fragment implements CommunicationRespons
 
         LineData data = new LineData(xVals, dataSets);
         chart.setData(data);
+        chart.setVisibleXRange(10);
+        chart.setBackgroundColor(getResources().getColor(R.color.white));
+        chart.setGridBackgroundColor(getResources().getColor(R.color.grey));
+        chart.setDescription("Recent Water Level Readings");
         chart.invalidate();
 
     }
+
 
     @Override
     public void onSuccess(int communicationId, JSONArray array) {

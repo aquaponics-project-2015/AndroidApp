@@ -41,7 +41,16 @@ public class FishActivity extends ActionBarActivity  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_fish);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("minph","0.0");
+        editor.putString("maxph","14.0");
+        editor.commit();
         fishes.add(new Fish(7.0, 3.0, "Gouramis"));
+        fishes.add(new Fish(7.5, 6.5, "Goldfish"));
+        fishes.add(new Fish(8.6, 7.8, "Tilapia"));
+        fishes.add(new Fish(7.5, 5.0, "Trout"));
+        fishes.add(new Fish(9.0, 6.5, "Carp"));
+        fishes.add(new Fish(7.5, 6.5, "Goldfish"));
         listView = (ListView)findViewById(R.id.listView);
         button = (Button)findViewById(R.id.save);
         FishAdapter adapter = new FishAdapter(fishes,this);
@@ -78,7 +87,7 @@ public class FishActivity extends ActionBarActivity  {
             if (i == 0){
                 min = fishes.get(i).getMinph();
             }else {
-                if (fishes.get(i).getMinph()<min){
+                if (fishes.get(i).getMinph()>min){
                     min = fishes.get(i).getMinph();
                 }
             }
@@ -92,7 +101,7 @@ public class FishActivity extends ActionBarActivity  {
             if (i == 0){
                 max = fishes.get(i).getMaxph();
             }else {
-                if (fishes.get(i).getMaxph()>max){
+                if (fishes.get(i).getMaxph()<max){
                     max = fishes.get(i).getMaxph();
                 }
             }

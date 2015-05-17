@@ -317,8 +317,14 @@ public class MainActivity extends ActionBarActivity implements AdapterView.OnIte
     public void setpHText(double ph){
         double minph = Double.parseDouble(prefs.getString("minph","0.0"));
         double maxph = Double.parseDouble(prefs.getString("maxph", "14.0"));
-        if(ph < minph || ph > maxph){
-            phLevel.setTextColor(getResources().getColor(R.color.red));
+        double maxdiff = Math.abs(ph - maxph);
+        double mindiff = Math.abs(ph - minph);
+        if(ph < mindiff|| ph >maxph){
+            if(maxdiff > 3 || mindiff >3) {
+                phLevel.setTextColor(getResources().getColor(R.color.red));
+            }else{
+                phLevel.setTextColor(getResources().getColor(R.color.yellow));
+                }
         }
         phLevel.setText(Double.toString(ph));
 
